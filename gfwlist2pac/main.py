@@ -11,7 +11,7 @@ from argparse import ArgumentParser
 __all__ = ['main']
 
 
-gfwlist_url = 'https://autoproxy-gfwlist.googlecode.com/svn/trunk/gfwlist.txt'
+gfwlist_url = 'https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt'
 
 
 def parse_args():
@@ -183,13 +183,18 @@ def main():
             user_rule = urllib2.urlopen(args.user_rule, timeout=10).read()
 
     content = decode_gfwlist(content)
-    gfwlist = combine_lists(content, user_rule)
+    google_removed_content = content.replace(content[content.find("!!---Google---"):content.find("!!---KickASS---")],"")
+    gfwlist = combine_lists(google_removed_content, user_rule)
+
     if args.precise:
         pac_content = generate_pac_precise(gfwlist, args.proxy)
     else:
         domains = parse_gfwlist(gfwlist)
         domains = reduce_domains(domains)
-        pac_content = generate_pac_fast(domains, args.proxy)
+        for item in domains.copy():
+            if 'google' in item:
+                domains.remove(item)
+        pac_content = generate_pac_fast(domains.union({'googlevideo.com'}), args.proxy)
     with open(args.output, 'wb') as f:
         f.write(pac_content)
 
